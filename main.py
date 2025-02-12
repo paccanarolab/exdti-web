@@ -8,13 +8,25 @@ import pandas as pd
 import numpy as np
 import json
 import pickle as pkl
+import zipfile
 from jinja2 import Template
 from sunburst_plotter import SunburstPlotter
 import os
 
-# load the data_for_plotting.pkl
-with open("data_for_plotting.pkl", "rb") as f:
+# Define file paths
+zip_path = "data_for_plotting.zip"
+extract_path = "data_for_plotting.pkl"
+
+
+# Unzip the file if it doesn't exist yet
+if not os.path.exists(extract_path):
+    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+        zip_ref.extractall(".")  # Extracts in the same directory
+
+# Load the extracted pickle file
+with open(extract_path, "rb") as f:
     data = pkl.load(f)
+
 drugs_H = data["drugs_H"]
 targets_W = data["targets_W"]
 X = data["X"]
