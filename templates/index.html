@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>EXDTI - Explainable Drug-Target Interactions</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        async function fetchData(endpoint) {
+            const response = await fetch(endpoint);
+            return response.json();
+        }
+
+        async function loadDrugsAndTargets() {
+            let drugsData = await fetchData("/drugs");
+            let targetsData = await fetchData("/targets");
+
+            let drugSelect = document.getElementById("drugSelect");
+            let targetSelect = document.getElementById("targetSelect");
+
+            drugSelect.innerHTML = '<option value="">Select a Drug</option>';
+            targetSelect.innerHTML = '<option value="">Select a Target</option>';
+
+            // Sort drugs and targets alphabetically
+            drugsData.drugs.sort();
+            targetsData.targets.sort();
+
+            drugsData.drugs.forEach(drug => {
+                drugSelect.innerHTML += `<option value="${drug}">${drug}</option>`;
+            });
+
+            targetsData.targets.forEach(target => {
+                targetSelect.innerHTML += `<option value="${target}">${target}</option>`;
+            });
+
+            updateSelectionDisplay(); // Ensure UI reflects selections
+        }
+
+        function updateSelectionDisplay() {
+            document.getElementById("selectedDrug").innerText = selectedDrug ? `Drug: ${selectedDrug}` : "No drug selected";
+            document.getElementById("selectedTarget").innerText = selectedTarget ? `Target: ${selectedTarget}` : "No target selected";
+            document.getElementById("clearDrug").style.display = selectedDrug ? "inline-block" : "none";
+            document.getElementById("clearTarget").style.display = selectedTarget ? "inline-block" : "none";
+            document.getElementById("generateButton").disabled = !(selectedDrug && selectedTarget);
+        }
+
+        let selectedDrug = null;
+        let selectedTarget = null;
+
+        async function updateTargets() {
+            let drug = document.getElementById("drugSelect").value;
+            if (!drug) return;
+
+            selectedDrug = drug;
+            let targetSelect = document.getElementById("targetSelect");
+            targetSelect.innerHTML = '<option value="">Select a Target</option>';
+
+            let response = await fetchData(`/targets/${drug}`);
+            response.targets.forEach(t => {
+                targetSelect.innerHTML += `<option value="${t.protein_name}">${t.protein_name} (${t.Predicted_Score.toFixed(5)})</option>`;
+            });
+
+            updateSelectionDisplay();
+            await fetchPredictionRank(selectedDrug, selectedTarget);
+
+            // Fetch and display known targets for the drug
+            await fetchKnownInteractions("drug", selectedDrug);
+        }
+
+
+        async function updateDrugs() {
+            let target = document.getElementById("targetSelect").value;
+            if (!target) return;
+
+            selectedTarget = target;
+            let drugSelect = document.getElementById("drugSelect");
+            drugSelect.innerHTML = '<option value="">Select a Drug</option>';
+
+            let response = await fetchData(`/drugs/${target}`);
+            response.drugs.forEach(d => {
+                drugSelect.innerHTML += `<option value="${d.drug_name}">${d.drug_name} (${d.Predicted_Score.toFixed(5)})</option>`;
+            });
+
+            updateSelectionDisplay();
+            await fetchPredictionRank(selectedDrug, selectedTarget);
+
+            // Fetch and display known drugs for the target
+            await fetchKnownInteractions("target", selectedTarget);
+        }
+
+
+
+        function clearSelection(type) {
+            if (type === "drug") {
+                selectedDrug = null;
+                document.getElementById("drugSelect").value = "";
+                document.getElementById("knownTargets").innerHTML = `<h3 class="font-semibold text-blue-800">Known targets</h3><p>No selection made.</p>`;
+            } else if (type === "target") {
+                selectedTarget = null;
+                document.getElementById("targetSelect").value = "";
+                document.getElementById("knownDrugs").innerHTML = `<h3 class="font-semibold text-green-800">Known drugs</h3><p>No selection made.</p>`;
+            }
+
+            updateSelectionDisplay();
+
+            if (!selectedDrug && !selectedTarget) {
+                loadDrugsAndTargets(); // Refresh both dropdowns alphabetically
+                document.getElementById("predictionRank").innerHTML = `<h3 class="text-lg font-semibold text-blue-800">Prediction Statistics</h3><p>No selection made.</p>`;
+            }
+        }
+
+
+
+
+
+
+        async function setExample(drug, target) {
+            selectedDrug = drug;
+            selectedTarget = target;
+
+            document.getElementById("drugSelect").value = drug;
+            document.getElementById("targetSelect").value = target;
+
+            updateSelectionDisplay();
+            await fetchPredictionRank(drug, target);
+
+            // Fetch known interactions for both drug and target
+            await fetchKnownInteractions("drug", drug);
+            await fetchKnownInteractions("target", target);
+        }
+
+        async function fetchPredictionRank(drug, target) {
+            let response = await fetch(`/prediction_rank/${drug}/${target}`);
+            let data = await response.json();
+
+            let predictionBox = document.getElementById("predictionRank");
+            let titleElement = predictionBox.querySelector("h3");
+
+            if (!titleElement) return;
+
+            // Ensure title remains unchanged
+            titleElement.textContent = "Prediction Statistics";
+
+            // Clear existing content before updating
+            predictionBox.innerHTML = `<h3 class="text-lg font-semibold text-blue-800">Prediction Statistics</h3>`;
+
+            let content = data.error
+                ? "<p>No ranking data available.</p>"
+                : `
+                <p><strong>Global Percentile:</strong> ${data.global_percentile}</p>
+                <p><strong>Target Rank for Drug:</strong> ${data.drug_target_rank}</p>
+                <p><strong>Drug Rank for Target:</strong> ${data.target_drug_rank}</p>
+            `;
+
+            predictionBox.innerHTML += content; // Add new content without duplicating
+        }
+
+
+
+                         
+        async function fetchKnownInteractions(entityType, entityName) {
+            let response = await fetch(`/known_interactions/${entityType}/${entityName}`);
+            let data = await response.json();
+
+            let interactionBox = entityType === "drug" 
+                ? document.getElementById("knownTargets") 
+                : document.getElementById("knownDrugs");
+
+            let titleElement = interactionBox.querySelector("h3");
+
+            if (!titleElement) return; // Ensure h3 exists
+
+            let titleText = entityType === "drug" 
+                ? `Known targets for ${entityName}` 
+                : `Known drugs for ${entityName}`;
+
+            // Only update text content, preserving styling
+            titleElement.textContent = titleText;
+
+            let interactionList = data.interactions.map(interaction => `<li>${interaction}</li>`).join("");
+            let content = data.interactions.length > 0 ? `<ul style="max-height: 200px; overflow-y: scroll;">${interactionList}</ul>` : "<p>No known interactions.</p>";
+
+            // Preserve the original structure and only replace the list
+            let existingList = interactionBox.querySelector("ul, p");
+            if (existingList) {
+                existingList.outerHTML = content;
+            } else {
+                interactionBox.innerHTML += content;
+            }
+        }
+
+
+        async function generatePlot() {
+            if (!selectedDrug || !selectedTarget) return alert("Select both a drug and a target.");
+
+            await fetchPredictionRank(selectedDrug, selectedTarget);
+
+            let plotFrame = document.getElementById("plotFrame");
+            plotFrame.src = `/plot/${selectedDrug}/${selectedTarget}`;
+        }                
+
+        window.onload = loadDrugsAndTargets;
+    </script>
+</head>
+<body class="bg-gray-100 text-gray-900 flex justify-center">
+    <div class="max-w-6xl w-full p-6 bg-white shadow-md rounded-lg"> <!-- Increased width -->
+        <div class="flex items-center justify-between mb-4">
+            <!-- Left image (RHUL) -->
+            <img 
+                src="/static/rhul.webp" 
+                alt="Royal Holloway, University of London" 
+                class="w-40 h-24 object-contain"
+            />
+        
+            <div class="text-center flex-1">
+                <h1 class="text-3xl font-bold">Interactive Exploration of Drug-Target Interactions</h1>
+                <h3 class="text-lg text-gray-700">Predictions made with EXDTI</h3>
+                <p class="text-md text-gray-600 mt-1" style="font-family: 'Century Gothic', sans-serif;">
+                    PaccanaroLab
+                </p>
+            </div>
+        
+            <!-- Right image (FGV) - Increased size -->
+            <img 
+                src="/static/fgv.jpg" 
+                alt="Fundação Getulio Vargas" 
+                class="w-48 h-24 object-contain"
+            />
+        </div>
+
+        <h2 class="text-xl font-semibold mb-2">Quick Examples</h2>
+        <ul class="list-disc pl-6 mb-4">
+            <li><a href="#" onclick="setExample('Atenolol', 'Beta-2 adrenergic receptor')" class="text-blue-600 hover:underline">Atenolol - Beta-2 adrenergic receptor</a></li>
+            <li><a href="#" onclick="setExample('Hydroxychloroquine', 'Toll-like receptor 8')" class="text-blue-600 hover:underline">Hydroxychloroquine - Toll-like receptor 8</a></li>
+            <li><a href="#" onclick="setExample('Valdecoxib', 'Prostaglandin G_H synthase 1')" class="text-blue-600 hover:underline">Valdecoxib - Prostaglandin G_H synthase 1</a></li>
+            <li><a href="#" onclick="setExample('Trandolapril', 'Angiotensin-converting enzyme 2')" class="text-blue-600 hover:underline">Trandolapril - Angiotensin-converting enzyme 2</a></li>
+        </ul>
+
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+                <label for="drugSelect" class="block font-medium">Select a Drug:</label>
+                <select id="drugSelect" onchange="updateTargets()" class="w-full p-2 border rounded-md"></select>
+                <button id="clearDrug" onclick="clearSelection('drug')" class="mt-2 text-red-500 hover:underline hidden">Clear</button>
+            </div>
+            <div>
+                <label for="targetSelect" class="block font-medium">Select a Target:</label>
+                <select id="targetSelect" onchange="updateDrugs()" class="w-full p-2 border rounded-md"></select>
+                <button id="clearTarget" onclick="clearSelection('target')" class="mt-2 text-red-500 hover:underline hidden">Clear</button>
+            </div>
+        </div>
+
+        <h3 id="selectedDrug" class="font-semibold text-lg text-blue-700">No drug selected</h3>
+        <h3 id="selectedTarget" class="font-semibold text-lg text-green-700">No target selected</h3>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div id="knownTargets" class="p-4 bg-gray-200 rounded-md">
+                <h3 class="font-semibold text-blue-800">Known targets</h3>
+                <p>No selection made.</p>
+            </div>
+
+            <div id="knownDrugs" class="p-4 bg-gray-200 rounded-md">
+                <h3 class="font-semibold text-green-800">Known drugs</h3>
+                <p>No selection made.</p>
+            </div>
+        </div>
+
+        <div id="predictionRank" class="p-4 mt-4 bg-blue-100 rounded-md">
+            <h3 class="text-lg font-semibold">Prediction Statistics</h3>
+            <p>No selection made.</p>
+        </div>
+
+        <button id="generateButton" onclick="generatePlot()" disabled class="w-full p-3 mt-4 bg-blue-500 text-white font-semibold rounded-md disabled:bg-gray-400">
+            Generate Explainability Plot
+        </button>
+
+        <div class="mt-6">
+            <iframe id="plotFrame" class="w-full h-[1200px] border rounded-md"></iframe> <!-- Increased height -->
+        </div>
+    </div>
+</body>
+
+
+</html>
