@@ -4,6 +4,24 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 class SunburstPlotter:
+    """
+    SunburstPlotter is a class designed to generate sunburst plots for visualizing the interaction between drugs and proteins.
+    It takes precomputed matrices and data as input and computes the necessary matrices (H and W) for plotting.
+    The class provides a method to generate and save a sunburst plot for a given drug and protein, showing the contributions
+    of interacting drugs and targets based on similarity measures.
+    Attributes:
+        drugs_H (dict): Dictionary containing drug similarity matrices and their corresponding beta values.
+        targets_W (dict): Dictionary containing target similarity matrices and their corresponding alpha values.
+        X (np.ndarray): Interaction matrix between drugs and targets.
+        Xr (np.ndarray): Interaction matrix for drugs.
+        Xc (np.ndarray): Interaction matrix for targets.
+        gamma (float): Weighting factor for combining drug and target contributions.
+        df_predictions (pd.DataFrame): DataFrame containing predictions with drug and target indices.
+    Methods:
+        _compute_H(): Computes the H matrix using the weighted sum formula.
+        _compute_W(): Computes the W matrix using the weighted sum formula.
+        generate_sunburst_plot(drug_name, protein_name): Generates and saves a sunburst plot for a given drug and protein.
+    """
     def __init__(self, drugs_H, targets_W, X, Xr, Xc, gamma, df_predictions):
         """Initialize the object with precomputed matrices and data."""
         self.drugs_H = drugs_H
