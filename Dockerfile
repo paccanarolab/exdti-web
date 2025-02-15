@@ -1,4 +1,4 @@
-FROM tiangolo/uvicorn-gunicorn-fastapi
+FROM python:3.10
 
 COPY ./ /app
 
