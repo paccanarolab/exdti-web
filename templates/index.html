@@ -10,8 +10,8 @@
         }
 
         async function loadDrugsAndTargets() {
-            let drugsData = await fetchData("/drugs");
-            let targetsData = await fetchData("/targets");
+            let drugsData = await fetchData("/exdtiweb/drugs");
+            let targetsData = await fetchData("/exdtiweb/targets");
 
             let drugSelect = document.getElementById("drugSelect");
             let targetSelect = document.getElementById("targetSelect");
@@ -53,7 +53,7 @@
             let targetSelect = document.getElementById("targetSelect");
             targetSelect.innerHTML = '<option value="">Select a Target</option>';
 
-            let response = await fetchData(`/targets/${drug}`);
+            let response = await fetchData(`/exdtiweb/targets/${drug}`);
             response.targets.forEach(t => {
                 targetSelect.innerHTML += `<option value="${t.protein_name}">${t.protein_name} (${t.Predicted_Score.toFixed(5)})</option>`;
             });
@@ -74,7 +74,7 @@
             let drugSelect = document.getElementById("drugSelect");
             drugSelect.innerHTML = '<option value="">Select a Drug</option>';
 
-            let response = await fetchData(`/drugs/${target}`);
+            let response = await fetchData(`/exdtiweb/drugs/${target}`);
             response.drugs.forEach(d => {
                 drugSelect.innerHTML += `<option value="${d.drug_name}">${d.drug_name} (${d.Predicted_Score.toFixed(5)})</option>`;
             });
@@ -128,7 +128,7 @@
         }
 
         async function fetchPredictionRank(drug, target) {
-            let response = await fetch(`/prediction_rank/${drug}/${target}`);
+            let response = await fetch(`/exdtiweb/prediction_rank/${drug}/${target}`);
             let data = await response.json();
 
             let predictionBox = document.getElementById("predictionRank");
@@ -157,7 +157,7 @@
 
                          
         async function fetchKnownInteractions(entityType, entityName) {
-            let response = await fetch(`/known_interactions/${entityType}/${entityName}`);
+            let response = await fetch(`/exdtiweb/known_interactions/${entityType}/${entityName}`);
             let data = await response.json();
 
             let interactionBox = entityType === "drug" 
@@ -194,7 +194,7 @@
             await fetchPredictionRank(selectedDrug, selectedTarget);
 
             let plotFrame = document.getElementById("plotFrame");
-            plotFrame.src = `/plot/${selectedDrug}/${selectedTarget}`;
+            plotFrame.src = `/exdtiweb/plot/${selectedDrug}/${selectedTarget}`;
         }                
 
         window.onload = loadDrugsAndTargets;
@@ -205,7 +205,7 @@
         <div class="flex items-center justify-between mb-4">
             <!-- Left image (RHUL) -->
             <img 
-                src="/static/rhul.webp" 
+                src="/exdtiweb/static/rhul.webp" 
                 alt="Royal Holloway, University of London" 
                 class="w-40 h-24 object-contain"
             />
@@ -220,7 +220,7 @@
         
             <!-- Right image (FGV) - Increased size -->
             <img 
-                src="/static/fgv.jpg" 
+                src="/exdtiweb/static/fgv.jpg" 
                 alt="Fundação Getulio Vargas" 
                 class="w-48 h-24 object-contain"
             />

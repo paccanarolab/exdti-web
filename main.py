@@ -1,11 +1,11 @@
-from fastapi import FastAPI, Query
-from fastapi.responses import FileResponse, HTMLResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from fastapi import BackgroundTasks
-from fastapi import Request
-import pandas as pd
-import numpy as np
+from fastapi import FastAPI  # type: ignore
+from fastapi.responses import FileResponse  # type: ignore
+from fastapi.staticfiles import StaticFiles  # type: ignore
+from fastapi.templating import Jinja2Templates  # type: ignore
+from fastapi import BackgroundTasks  # type: ignore
+from fastapi import Request  # type: ignore
+import pandas as pd  # type: ignore
+import numpy as np  # type: ignore
 import json
 import pickle as pkl
 import zipfile
@@ -41,7 +41,7 @@ app = FastAPI()
 plotter = SunburstPlotter(drugs_H, targets_W, X, Xr, Xc, gamma, df_predictions)
 
 # Serve static files
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/exdtiweb/static", StaticFiles(directory="/app/static"), name="static")
 
 # Set up template rendering
 templates = Jinja2Templates(directory="templates")
@@ -57,7 +57,9 @@ templates = Jinja2Templates(directory="templates")
 @app.get("/", response_class=FileResponse)
 def serve_homepage(request: Request):
     """Serve the HTML page from templates."""
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(
+        "index.html", {"request": request, "static_url": "/exdtiweb/static"}
+    )
 
 
 @app.get("/drugs")
