@@ -41,7 +41,10 @@ app = FastAPI()
 plotter = SunburstPlotter(drugs_H, targets_W, X, Xr, Xc, gamma, df_predictions)
 
 # Serve static files
-app.mount("/exdtiweb/static", StaticFiles(directory="/app/static"), name="static")
+########## (2026 Changes made by Santiago) ##########
+# app.mount("/exdtiweb/static", StaticFiles(directory="/app/static"), name="static")
+app.mount("/lidtiweb/static", StaticFiles(directory="/app/static"), name="static")
+########## (2026 Changes made by Santiago) ##########
 
 # Set up template rendering
 templates = Jinja2Templates(directory="templates")
@@ -53,13 +56,19 @@ templates = Jinja2Templates(directory="templates")
 #             window.open(plotUrl, "_blank");  // Opens in a new tab
 #         }
 
-
+########## (2026 Changes made by Santiago) ##########
+# @app.get("/", response_class=FileResponse)
+# def serve_homepage(request: Request):
+#     """Serve the HTML page from templates."""
+#     return templates.TemplateResponse(
+#         "index.html", {"request": request, "static_url": "/exdtiweb/static"}
+#     )
 @app.get("/", response_class=FileResponse)
 def serve_homepage(request: Request):
     """Serve the HTML page from templates."""
     return templates.TemplateResponse(
-        "index.html", {"request": request, "static_url": "/exdtiweb/static"}
-    )
+        "index.html", {"request": request, "static_url": "/lidtiweb/static"}
+########## (2026 Changes made by Santiago) ##########
 
 
 @app.get("/drugs")
@@ -193,3 +202,4 @@ def generate_plot(drug_name: str, protein_name: str, background_tasks: Backgroun
     background_tasks.add_task(os.remove, plot_file)
 
     return FileResponse(plot_file)
+
